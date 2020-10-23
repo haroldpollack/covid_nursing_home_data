@@ -1,0 +1,87 @@
+---
+title: "reading_COVID_nursing_home20201022"
+author: "Harold Pollack"
+date: "10/23/2020"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library("formattable")
+library("survey")
+library("questionr")
+library("dplyr")
+library("descr")
+library("data.table")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Program that reads CMS nursing home data and performs weighted tables
+
+```{r read admissions dataset}
+mydata <- read.csv("/Users/haroldpollack/Downloads/COVID-19_Nursing_Home_Dataset20201023.csv")
+#str(mydata)
+table(mydata$Week.Ending)
+aggregate(mydata$Staff.Weekly.COVID.19.Deaths, by=list(Category=mydata$Week.Ending), na.rm=TRUE, FUN=sum)
+aggregate(mydata$Residents.Weekly.COVID.19.Deaths, by=list(Category=mydata$Week.Ending), na.rm=TRUE, FUN=sum)
+#
+#   Indicate latest week
+#
+max(mydata$Week.Ending)
+#
+# from https://data.cms.gov/api/views/s2uc-8wxp/rows.csv?accessType=DOWNLOAD, https://data.cms.gov/Special-Programs-Initiatives-COVID-19-Nursing-Home/COVID-19-Nursing-Home-Dataset/s2uc-8wxp/data
+#
+#summary(mydata)
+#head(mydata)
+myvars <- c("Residents.Weekly.COVID.19.Deaths","Federal.Provider.Number","Staff.Weekly.COVID.19.Deaths")
+newdata <- mydata[myvars]
+newdata<-arrange(newdata,Federal.Provider.Number)
+v_sums <-newdata %>%
+    summarize_if(is.numeric, sum, na.rm=TRUE)
+#summary(v_sums)
+resident_deaths<- v_sums$Residents.Weekly.COVID.19.Deaths
+staff_deaths<-v_sums$Staff.Weekly.COVID.19.Deaths
+resident_deaths
+staff_deaths
+
+wtd.table(mydata$Provider.State, mydata$One.Week.Supply.of.N95.Masks, weights=mydata$Total.Number.of.Occupied.Beds)
+#ct<- crosstab(mydata$Provider.State, mydata$One.Week.Supply.of.N95.Masks, weight=mydata$Total.Number.of.Occupied.Beds, xlab = "state", ylab = "Mask supply")
+#ct
+maxweek<-max(mydata$Week.Ending)
+mydata_last<- mydata  %>% filter(Week.Ending == maxweek)
+#mydata_last<-mydata[,mydata$Week.Ending<-maxweek]
+wtd.table(mydata_last$Provider.State, mydata_last$One.Week.Supply.of.N95.Masks, weights=mydata_last$Total.Number.of.Occupied.Beds)
+wtd.table(mydata_last$Provider.State, mydata_last$One.Week.Supply.of.Gowns, weights=mydata_last$Total.Number.of.Occupied.Beds)
+wtd.table(mydata_last$Provider.State, mydata_last$Shortage.of.Nursing.Staff, weights=mydata_last$Total.Number.of.Occupied.Beds)
+wtd.table(mydata_last$Provider.State, mydata_last$Shortage.of.Clinical.Staff, weights=mydata_last$Total.Number.of.Occupied.Beds)
+wtd.table(mydata_last$Provider.State, mydata_last$Shortage.of.Aides, weights=mydata_last$Total.Number.of.Occupied.Beds)
+custom_glimpse <- function(df) {
+  data.frame(
+    col_name = colnames(df),
+    col_index = 1:ncol(df),
+    col_class = sapply(df, class),
+    row.names = NULL
+  )
+}
+custom_glimpse(mydata)
+```
+
+quick glimse at the downloaded variables.
+
+```{r quickly glimpsing the variables}
+#
+#    function from https://stackoverflow.com/questions/56466715/explore-data-frame-and-provide-numbered-list-of-variables-in-r
+#
+
+custom_glimpse <- function(df) {
+  data.frame(
+    col_name = colnames(df),
+    col_index = 1:ncol(df),
+    col_class = sapply(df, class),
+    row.names = NULL
+  )
+}
+#custom_glimpse(mydata)
+```
